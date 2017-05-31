@@ -68,11 +68,25 @@
         return;
     }
 
-    NSError *readerError;
-    self.reader = [AVAssetReader.alloc initWithAsset:self.asset error:&readerError];
-    if (readerError)
+    // trap this as a small but not insignificant number of users were getting a fatal error on the read attempt.  cause unknown
+    @try
     {
-        _error = readerError;
+        NSError *readerError;
+        self.reader = [AVAssetReader.alloc initWithAsset:self.asset error:&readerError];
+        if (readerError)
+        {
+            _error = readerError;
+            handler();
+            return;
+        }
+    }
+    @catch(NSException *theException)
+    {
+        NSLog(@"Error when encoding video:%@ %@", theException.name, theException.reason);
+        _error = [NSError errorWithDomain:AVFoundationErrorDomain code:AVErrorExportFailed userInfo:@
+                  {
+                  NSLocalizedDescriptionKey: @"Unknown encoding error. Please try again or try a different video. If this problem persists contact support."
+                  }];
         handler();
         return;
     }
